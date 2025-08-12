@@ -15,6 +15,35 @@ This is a tiny, portable framework where a **C testbench** produces input vector
 - QuestaSim or ModelSim on PATH (`vsim` available)
 - GCC or Clang
 
+## Control & Data Flow
+
+The following diagram outlines how the C testbench and Verilog DUT interact through co-simulation:
+
+```text
+[C Testbench] 
+     |
+     | 1. Write inputs to `sim/in.dat`
+     v
+[Input File: sim/in.dat]
+     |
+     | 2. Launch ModelSim/QuestaSim via `system("vsim ...")`
+     v
+[HDL Simulator]
+     |
+     | 3. Verilog DUT reads inputs from `sim/in.dat`
+     | 4. DUT computes outputs cycle by cycle
+     v
+[Output File: sim/out.dat]
+     |
+     | 5. Simulator exits (via $finish)
+     v
+[C Testbench]
+     |
+     | 6. Read `sim/out.dat` and compare with golden output
+     v
+[Pass / Fail Summary]
+```
+
 ## Quick Start
 
 To perform the simulation, run the following command:
