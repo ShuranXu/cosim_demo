@@ -9,7 +9,7 @@
 //   g++ -O2 -std=c++17 -o cosim_tb cosim_tb.cpp \
 //       -DCOSIM_N=4096 -DCOSIM_SEED=7 \
 //       -DCOSIM_RTL_PATH=\"../rtl/adder_rv_simple.sv\" \
-//       -DCOSIM_TB_PATH=\"./rv_cosim_tb.sv\" \
+//       -DCOSIM_TB_PATH=\"././rtl/adder_cosim_tb.sv\" \
 //       -DCOSIM_INPUT_FILE=\"./inputs.txt\" \
 //       -DCOSIM_OUTPUT_FILE=\"./outputs.txt\" \
 //       -DCOSIM_WORKDIR=\"./.cosim_q\" \
@@ -36,7 +36,7 @@
 #  define COSIM_RTL_PATH "../rtl/adder_rv_simple.sv"
 #endif
 #ifndef COSIM_TB_PATH
-#  define COSIM_TB_PATH "./rv_cosim_tb.sv"
+#  define COSIM_TB_PATH "../rtl/adder_cosim_tb.sv"
 #endif
 #ifndef COSIM_INPUT_FILE
 #  define COSIM_INPUT_FILE "./inputs.txt"
@@ -165,7 +165,7 @@ int main() {
 
     // 3) vsim: run batch
     std::stringstream vsim_cmd;
-    vsim_cmd << VSIM << " -c work.rv_cosim_tb -do " << '\"' << "run -all; quit -f" << '\"';
+    vsim_cmd << VSIM << " -c work.adder_cosim_tb -do " << '\"' << "run -all; quit -f" << '\"';
     if (run_cmd(vsim_cmd.str(), WORK) != 0) { std::cerr << "[C-TB] vsim failed\n"; return 3; }
 
     // 4) Compare

@@ -1,11 +1,26 @@
-// rv_cosim_tb.sv
-// Questa/ModelSim file-based harness for adder_rv_simple
-// - Reads hex pairs from +cosim_inputs=inputs.txt
-// - Drives ready/valid into DUT (holds in_valid until in_ready @ posedge)
-// - Keeps out_ready=1 and writes sums to +cosim_outputs=outputs.txt (one 8-hex per line)
-`timescale 1ns / 1ps
+// adder_cosim_tb_fixed.sv
+// Questa/ModelSim file-based harness for adder_rv_simple (Linux-friendly)
+// - Reads hex pairs from a text file
+// - Drives ready/valid into DUT (producer holds until in_ready on posedge)
+// - Keeps out_ready=1 and writes sums to an output text file
+// Supports compile-time macros for file paths; optional plusargs can override.
+//
+// Macros (string literals) you can pass via vlog +define:
+//   COSIM_INPUTS  -> default "inputs.txt"
+//   COSIM_OUTPUTS -> default "outputs.txt"
+`timescale 1ns/1ps
 
-module rv_cosim_tb;
+`define STR_IMPL(x) `"x`"
+`define STR(x) `STR_IMPL(x)
+
+`ifndef COSIM_INPUTS
+  `define COSIM_INPUTS "inputs.txt"
+`endif
+`ifndef COSIM_OUTPUTS
+  `define COSIM_OUTPUTS "outputs.txt"
+`endif
+
+module adder_cosim_tb;
   parameter int W = 32;
 
   // Clock/reset
@@ -36,80 +51,79 @@ module rv_cosim_tb;
     .out_sum    (out_sum)
   );
 
-  // clock 100MHz
+  // 100 MHz clock
   always #5 clk = ~clk;
 
-  // files
-  string in_path  = "inputs.txt";
-  string out_path = "outputs.txt";
-  integer fin, fout;
+  // File paths (from macros, with optional plusargs override)
+  string in_path  = `STR(`COSIM_INPUTS);
+  string out_path = `STR(`COSIM_OUTPUTS);
 
-  // counters
+  // I/O handles and counters
+  integer fin, fout;
   int n_sent = 0;
   int n_written = 0;
 
-  // consumer: write sum when transfer happens
+  string line;
+  logic [W-1:0] a, b;
+  int r;
+
+  // Consumer: write when a transfer completes (respect reset)
   always @(posedge clk) begin
-    if (out_valid && out_ready) begin
+    if (rst_n && out_valid && out_ready) begin
       $fwrite(fout, "%08h\n", out_sum);
       n_written++;
     end
   end
 
+  // Producer: send one item, holding until accepted at a posedge
   task automatic send_item(input logic [W-1:0] a, input logic [W-1:0] b);
-    // Drive pre-edge
     @(negedge clk);
     in_a     <= a;
     in_b     <= b;
     in_valid <= 1'b1;
     // Wait for acceptance on a posedge
     do @(posedge clk); while (!in_ready);
-    // Deassert on next negedge
     @(negedge clk);
     in_valid <= 1'b0;
   endtask
 
+  // Main control (single initial block; all statements kept inside)
   initial begin
-    // defaults
-    in_valid = 1'b0;
-    in_a = '0; in_b = '0;
+    // Defaults
+    in_valid  = 1'b0;
+    in_a      = '0;
+    in_b      = '0;
     out_ready = 1'b1;
 
+    // Optional plusargs to override file paths
     void'($value$plusargs("cosim_inputs=%s",  in_path));
     void'($value$plusargs("cosim_outputs=%s", out_path));
 
-    // reset
+    // Reset sequence
     repeat (4) @(posedge clk);
     rst_n = 1'b1;
     @(posedge clk);
 
-    // open files
-    fin  = $fopen(in_path, "r");
+    // Open files
+    fin  = $fopen(in_path,  "r");
     if (fin == 0) $fatal(1, "[TB] Cannot open input %s", in_path);
     fout = $fopen(out_path, "w");
     if (fout == 0) $fatal(1, "[TB] Cannot open output %s", out_path);
 
-    string line;
-    logic [W-1:0] a, b;
-    int r;
+    // Read lines and drive
     while (!$feof(fin)) begin
       r = $fscanf(fin, "%h %h\n", a, b);
       if (r == 2) begin
         send_item(a, b);
         n_sent++;
       end else begin
-        // Reads a line of text from the file handle fin into the string variable line,
-        // advancing the file position to just after the newline (end-of-line).
-        // If $fscanf failed or only partially matched, $fgets consumes the remainder
-        // of that line so the next read starts on the next line.
-        // --> Useful to discard blank/comment/garbage lines or to skip a partially parsed line.
-        // void' means we are ignoring the return value.
+        // consume the rest of the line (skip blanks/comments/garbage)
         void'($fgets(line, fin));
       end
     end
     $fclose(fin);
 
-    // wait for all outputs
+    // Drain: wait until all outputs have been written
     wait (n_written == n_sent);
     @(posedge clk);
 
@@ -117,4 +131,5 @@ module rv_cosim_tb;
     $fclose(fout);
     $finish;
   end
+
 endmodule
