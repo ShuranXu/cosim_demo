@@ -135,7 +135,7 @@ make run-numa
 - Outputs always go into `./logs/` for easy cleanup and inspection.
 
 
-## Example output (screenshot)
+## Simulation Output (screenshot)
 
 Below is a real console capture showing a full run with **`make run`** followed by **`make coverage`**:
 

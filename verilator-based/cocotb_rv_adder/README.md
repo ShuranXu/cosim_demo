@@ -48,7 +48,7 @@ make coverage
 
 ---
 
-## Architecture (ASCII diagram)
+## CoSim Flow Diagram
 
 ```
 +-----------------------------+
@@ -92,7 +92,7 @@ make coverage
 
 ---
 
-## Per‑cycle handshake & scoreboard (ASCII timing)
+## Per‑cycle handshake & scoreboard
 
 ```
 Time → → →
@@ -132,6 +132,16 @@ Next cycle k+1 repeats: drive on FallingEdge → ReadOnly snapshot → POP→ENQ
 - `EXTRA_ARGS` — add Verilator switches (e.g., `-O3`, `--x-assign fast`).
 - `PLUSARGS` — runtime options; e.g., move coverage file: \
   `PLUSARGS='+verilator+coverage+file+/abs/path/coverage.dat' make`.
+
+---
+
+## Simulation Output (screenshot)
+
+Below is a real console capture showing a full run with **`make run`**:
+
+![Simulation run output](./cocotb_sim_output.png)
+
+> The screenshot confirms the expected artifacts and shows the test summary where test result and simulation time are shown.
 
 ---
 
